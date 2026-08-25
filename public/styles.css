@@ -328,6 +328,16 @@ textarea:focus {
   gap: 12px;
 }
 
+.filters {
+  grid-template-columns: minmax(0, 1fr) minmax(112px, 132px) 76px;
+}
+
+.compact-button {
+  min-height: 44px;
+  padding-inline: 12px;
+  white-space: nowrap;
+}
+
 .actions {
   display: flex;
   gap: 10px;
@@ -679,9 +689,21 @@ textarea:focus {
 
   .settings-panel,
   .form-grid,
-  .filters,
   .library-layout {
     grid-template-columns: 1fr;
+  }
+
+  .filters {
+    grid-template-columns: minmax(0, 1fr) minmax(104px, 124px) 68px;
+    gap: 8px;
+  }
+
+  .filters input {
+    grid-column: 1 / -1;
+  }
+
+  .compact-button {
+    padding-inline: 8px;
   }
 
   .library-sidebar,

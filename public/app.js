@@ -41,6 +41,7 @@ const elements = {
   captureStatus: $("#captureStatus"),
   searchInput: $("#searchInput"),
   filterTypeInput: $("#filterTypeInput"),
+  librarySearchButton: $("#librarySearchButton"),
   itemGrid: $("#itemGrid"),
   emptyState: $("#emptyState"),
   detailPanel: $("#detailPanel"),
@@ -211,7 +212,8 @@ async function loadItems() {
   try {
     const result = await api(`/api/items?${params}`);
     state.items = result.items;
-    if (!state.selectedItemId && state.items[0]) state.selectedItemId = state.items[0].id;
+    const selectedExists = state.items.some((item) => item.id === state.selectedItemId);
+    if (!selectedExists) state.selectedItemId = state.items[0]?.id || "";
     renderLibrary();
   } catch (error) {
     elements.itemGrid.innerHTML = "";
@@ -331,7 +333,11 @@ function bindEvents() {
   });
   elements.itemForm.addEventListener("submit", saveItem);
   elements.searchInput.addEventListener("input", loadItems);
+  elements.searchInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") loadItems();
+  });
   elements.filterTypeInput.addEventListener("change", loadItems);
+  elements.librarySearchButton.addEventListener("click", loadItems);
   elements.retrieveButton.addEventListener("click", retrieveForCodex);
 }
 
