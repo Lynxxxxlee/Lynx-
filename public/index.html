@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lynx Knowledge Base</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>Lynx Knowledge Base</h1>
+        <p>保存资料卡片，之后让 Codex 按需调用。</p>
+      </div>
+      <button id="settingsButton" class="icon-button" type="button" title="访问设置">⚙</button>
+    </header>
+
+    <main class="app-shell">
+      <nav class="tabs" aria-label="主导航">
+        <button class="tab active" data-view="capture" type="button">快速收藏</button>
+        <button class="tab" data-view="library" type="button">资料库</button>
+        <button class="tab" data-view="retrieve" type="button">Codex 检索</button>
+      </nav>
+
+      <section id="settingsPanel" class="settings-panel hidden">
+        <label>
+          访问口令
+          <input id="passwordInput" type="password" autocomplete="current-password" placeholder="本地未设置时可留空" />
+        </label>
+        <label>
+          API Token
+          <input id="tokenInput" type="password" autocomplete="off" placeholder="Codex 检索接口可选" />
+        </label>
+        <button id="saveSettingsButton" class="secondary-button" type="button">保存到本机浏览器</button>
+      </section>
+
+      <section id="captureView" class="view">
+        <div class="panel capture-panel">
+          <div class="panel-heading">
+            <h2>快速收藏</h2>
+            <p>粘贴链接或原文片段，先形成可检索卡片。</p>
+          </div>
+
+          <label>
+            链接或文本
+            <textarea id="captureInput" rows="5" placeholder="粘贴公众号链接、论文链接、帖子链接，或直接粘贴文字"></textarea>
+          </label>
+          <div class="actions">
+            <button id="previewButton" class="primary-button" type="button">读取并预填</button>
+            <button id="clearCaptureButton" class="secondary-button" type="button">清空</button>
+          </div>
+
+          <form id="itemForm" class="item-form">
+            <div class="form-grid">
+              <label>
+                标题
+                <input id="titleInput" required />
+              </label>
+              <label>
+                类型
+                <select id="typeInput">
+                  <option value="wechat">公众号</option>
+                  <option value="paper">论文</option>
+                  <option value="post">帖子</option>
+                  <option value="webpage">网页</option>
+                  <option value="project">项目</option>
+                  <option value="interview">面试材料</option>
+                </select>
+              </label>
+              <label>
+                来源链接
+                <input id="sourceUrlInput" type="url" />
+              </label>
+              <label>
+                来源平台
+                <input id="sourcePlatformInput" placeholder="微信公众号、arXiv、知乎..." />
+              </label>
+            </div>
+
+            <label>
+              摘要
+              <textarea id="summaryInput" rows="3"></textarea>
+            </label>
+            <label>
+              关键观点
+              <textarea id="keyPointsInput" rows="3" placeholder="每行一个观点"></textarea>
+            </label>
+            <label>
+              关键片段
+              <textarea id="excerptsInput" rows="4" placeholder="每行一个片段"></textarea>
+            </label>
+            <div class="form-grid">
+              <label>
+                标签
+                <input id="tagsInput" placeholder="逗号分隔，例如：面试, 远程安全" />
+              </label>
+              <label>
+                适用场景
+                <input id="useCasesInput" placeholder="逗号分隔，例如：面试项目讲解" />
+              </label>
+            </div>
+            <label>
+              我的备注
+              <textarea id="personalNoteInput" rows="3"></textarea>
+            </label>
+
+            <details class="type-details">
+              <summary>类型补充字段</summary>
+              <div class="form-grid">
+                <label>
+                  作者/账号
+                  <input id="authorInput" />
+                </label>
+                <label>
+                  年份/发布时间
+                  <input id="dateInput" />
+                </label>
+                <label>
+                  方法/技术栈
+                  <input id="methodInput" />
+                </label>
+                <label>
+                  结论/结果
+                  <input id="resultInput" />
+                </label>
+              </div>
+            </details>
+
+            <button class="primary-button save-button" type="submit">保存卡片</button>
+          </form>
+          <p id="captureStatus" class="status" role="status"></p>
+        </div>
+      </section>
+
+      <section id="libraryView" class="view hidden">
+        <div class="library-layout">
+          <div class="panel">
+            <div class="panel-heading">
+              <h2>资料库</h2>
+              <p id="libraryCount">0 条资料</p>
+            </div>
+            <div class="filters">
+              <input id="searchInput" placeholder="搜索标题、标签、适用场景、备注..." />
+              <select id="filterTypeInput">
+                <option value="">全部类型</option>
+                <option value="wechat">公众号</option>
+                <option value="paper">论文</option>
+                <option value="post">帖子</option>
+                <option value="webpage">网页</option>
+                <option value="project">项目</option>
+                <option value="interview">面试材料</option>
+              </select>
+            </div>
+            <div id="itemGrid" class="item-grid"></div>
+            <div id="emptyState" class="empty-state hidden">还没有资料。先去快速收藏保存一条。</div>
+          </div>
+
+          <aside id="detailPanel" class="panel detail-panel">
+            <div class="empty-detail">选择一张卡片查看详情。</div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="retrieveView" class="view hidden">
+        <div class="panel">
+          <div class="panel-heading">
+            <h2>Codex 检索</h2>
+            <p>模拟之后 Codex 用任务描述检索你的资料卡片。</p>
+          </div>
+          <label>
+            当前任务
+            <textarea id="retrieveQueryInput" rows="3" placeholder="例如：帮我准备远程 Mac 安全面试"></textarea>
+          </label>
+          <button id="retrieveButton" class="primary-button" type="button">检索相关资料</button>
+          <pre id="retrieveOutput" class="json-output"></pre>
+        </div>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

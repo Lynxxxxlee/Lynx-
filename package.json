@@ -1,0 +1,13 @@
+{
+  "name": "lynx-personal-kb",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Private personal knowledge base with mobile capture, Codex retrieval, and Obsidian export.",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check public/app.js && node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
