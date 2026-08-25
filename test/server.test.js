@@ -28,6 +28,8 @@ test("normalizes a project item", () => {
       title: "远程 Mac 安全方案",
       type: "project",
       summary: "用于面试讲解的项目卡片",
+      knowledge_category: "Agent",
+      knowledge_subcategory: "Agent评测",
       tags: "安全, Mac",
       use_cases: "面试项目讲解",
       tech_stack: "MDM, VPN",
@@ -37,6 +39,8 @@ test("normalizes a project item", () => {
   );
 
   assert.equal(item.type, "project");
+  assert.equal(item.knowledge_category, "Agent");
+  assert.equal(item.knowledge_subcategory, "Agent评测");
   assert.deepEqual(item.tags, ["安全", "Mac"]);
   assert.deepEqual(item.type_details.tech_stack, ["MDM", "VPN"]);
 });
@@ -91,6 +95,17 @@ test("filters items by query and type", () => {
   const result = filterItems(items, params);
   assert.equal(result.length, 1);
   assert.equal(result[0].type, "paper");
+});
+
+test("filters items by knowledge category and subcategory", () => {
+  const items = [
+    normalizeItem({ title: "Agent 评测资料", type: "wechat", knowledge_category: "Agent", knowledge_subcategory: "Agent评测" }, []),
+    normalizeItem({ title: "LLM 科普资料", type: "wechat", knowledge_category: "LLM", knowledge_subcategory: "科普" }, [])
+  ];
+  const params = new URLSearchParams("category=Agent&subcategory=Agent%E8%AF%84%E6%B5%8B");
+  const result = filterItems(items, params);
+  assert.equal(result.length, 1);
+  assert.equal(result[0].knowledge_subcategory, "Agent评测");
 });
 
 test("exports Obsidian markdown", () => {

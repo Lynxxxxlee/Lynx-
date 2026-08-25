@@ -179,6 +179,8 @@ function normalizeItem(body, existing) {
     type,
     source_url: sourceUrl,
     source_platform: String(body.source_platform || inferPlatform(sourceUrl)).trim(),
+    knowledge_category: String(body.knowledge_category || "").trim(),
+    knowledge_subcategory: String(body.knowledge_subcategory || "").trim(),
     summary: String(body.summary || "").trim(),
     key_points: normalizeList(body.key_points),
     tags: normalizeList(body.tags),
@@ -222,6 +224,8 @@ function itemSearchText(item) {
     item.title,
     item.type,
     item.source_platform,
+    item.knowledge_category,
+    item.knowledge_subcategory,
     item.summary,
     item.personal_note,
     ...(item.key_points || []),
@@ -235,11 +239,15 @@ function itemSearchText(item) {
 function filterItems(items, params) {
   const q = String(params.get("q") || "").trim().toLowerCase();
   const type = String(params.get("type") || "").trim();
+  const category = String(params.get("category") || "").trim().toLowerCase();
+  const subcategory = String(params.get("subcategory") || "").trim().toLowerCase();
   const tag = String(params.get("tag") || "").trim().toLowerCase();
   const useCase = String(params.get("use_case") || "").trim().toLowerCase();
 
   return items.filter((item) => {
     if (type && item.type !== type) return false;
+    if (category && String(item.knowledge_category || "").toLowerCase() !== category) return false;
+    if (subcategory && String(item.knowledge_subcategory || "").toLowerCase() !== subcategory) return false;
     if (tag && !(item.tags || []).some((value) => value.toLowerCase().includes(tag))) return false;
     if (useCase && !(item.use_cases || []).some((value) => value.toLowerCase().includes(useCase))) return false;
     if (q && !itemSearchText(item).includes(q)) return false;
@@ -277,6 +285,8 @@ function compactForRetrieval(item, score) {
     tags: item.tags || [],
     source_url: item.source_url,
     source_platform: item.source_platform,
+    knowledge_category: item.knowledge_category || "",
+    knowledge_subcategory: item.knowledge_subcategory || "",
     excerpts: (item.excerpts || []).slice(0, 3).map((excerpt) => excerpt.text),
     personal_note: item.personal_note
   };
@@ -293,6 +303,8 @@ function itemToMarkdown(item) {
     `type: ${item.type}`,
     `source_url: ${JSON.stringify(item.source_url || "")}`,
     `source_platform: ${JSON.stringify(item.source_platform || "")}`,
+    `knowledge_category: ${JSON.stringify(item.knowledge_category || "")}`,
+    `knowledge_subcategory: ${JSON.stringify(item.knowledge_subcategory || "")}`,
     "tags:",
     ...(item.tags || []).map((tag) => `  - ${tag}`),
     "use_cases:",

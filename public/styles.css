@@ -361,8 +361,7 @@ textarea:focus {
   margin-bottom: 11px;
 }
 
-.library-layout,
-.search-layout {
+.library-layout {
   display: grid;
   grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
   gap: 18px;

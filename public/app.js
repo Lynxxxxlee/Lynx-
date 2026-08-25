@@ -1,10 +1,16 @@
 const state = {
   items: [],
   selectedItemId: "",
-  retrieveItems: [],
-  selectedRetrieveItemId: "",
   password: localStorage.getItem("kb_password") || "",
   token: localStorage.getItem("kb_api_token") || ""
+};
+
+const KNOWLEDGE_TAXONOMY = {
+  Agent: ["Agent评测", "可观测", "工具调用", "多智能体", "RAG Agent"],
+  LLM: ["RL算法", "科普", "Prompt工程", "模型评测", "推理优化"],
+  工程: ["CI/CD", "安全", "成本", "部署"],
+  论文: ["文献综述", "实验设计", "JSSP", "方法复现"],
+  产品研究: ["竞品分析", "用户反馈", "市场判断"]
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -19,8 +25,7 @@ const elements = {
   tabs: $$(".tab"),
   views: {
     capture: $("#captureView"),
-    library: $("#libraryView"),
-    retrieve: $("#retrieveView")
+    library: $("#libraryView")
   },
   captureInput: $("#captureInput"),
   previewButton: $("#previewButton"),
@@ -35,6 +40,10 @@ const elements = {
   excerptsInput: $("#excerptsInput"),
   tagsInput: $("#tagsInput"),
   useCasesInput: $("#useCasesInput"),
+  knowledgeCategoryInput: $("#knowledgeCategoryInput"),
+  knowledgeSubcategoryInput: $("#knowledgeSubcategoryInput"),
+  knowledgeCategoryOptions: $("#knowledgeCategoryOptions"),
+  knowledgeSubcategoryOptions: $("#knowledgeSubcategoryOptions"),
   personalNoteInput: $("#personalNoteInput"),
   authorInput: $("#authorInput"),
   dateInput: $("#dateInput"),
@@ -43,17 +52,12 @@ const elements = {
   captureStatus: $("#captureStatus"),
   searchInput: $("#searchInput"),
   filterTypeInput: $("#filterTypeInput"),
+  filterCategoryInput: $("#filterCategoryInput"),
+  filterSubcategoryInput: $("#filterSubcategoryInput"),
   itemGrid: $("#itemGrid"),
   emptyState: $("#emptyState"),
   detailPanel: $("#detailPanel"),
-  libraryCount: $("#libraryCount"),
-  retrieveQueryInput: $("#retrieveQueryInput"),
-  retrieveTypeInput: $("#retrieveTypeInput"),
-  retrieveButton: $("#retrieveButton"),
-  retrieveGrid: $("#retrieveGrid"),
-  retrieveEmptyState: $("#retrieveEmptyState"),
-  retrieveDetailPanel: $("#retrieveDetailPanel"),
-  retrieveCount: $("#retrieveCount")
+  libraryCount: $("#libraryCount")
 };
 
 function headers(extra = {}) {
@@ -97,13 +101,57 @@ function typeLabel(type) {
   }[type] || type;
 }
 
+function taxonomyCategories() {
+  return Object.keys(KNOWLEDGE_TAXONOMY);
+}
+
+function subcategoriesFor(category) {
+  if (!category) return [...new Set(Object.values(KNOWLEDGE_TAXONOMY).flat())];
+  return KNOWLEDGE_TAXONOMY[category] || [];
+}
+
+function setOptions(container, values) {
+  container.replaceChildren();
+  values.forEach((value) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = value;
+    container.append(option);
+  });
+}
+
+function setSelectOptions(select, values, emptyLabel) {
+  const previous = select.value;
+  select.replaceChildren();
+  const empty = document.createElement("option");
+  empty.value = "";
+  empty.textContent = emptyLabel;
+  select.append(empty);
+  values.forEach((value) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = value;
+    select.append(option);
+  });
+  select.value = values.includes(previous) ? previous : "";
+}
+
+function updateSubcategoryOptions() {
+  const category = elements.knowledgeCategoryInput.value.trim();
+  setOptions(elements.knowledgeSubcategoryOptions, subcategoriesFor(category));
+}
+
+function updateFilterSubcategories() {
+  const category = elements.filterCategoryInput.value;
+  setSelectOptions(elements.filterSubcategoryInput, subcategoriesFor(category), "全部二级分类");
+}
+
 function showView(name) {
   Object.entries(elements.views).forEach(([key, view]) => {
     view.classList.toggle("hidden", key !== name);
   });
   elements.tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.view === name));
   if (name === "library") loadItems();
-  if (name === "retrieve") loadRetrieveItems();
 }
 
 async function api(path, options = {}) {
@@ -160,6 +208,8 @@ function buildItemPayload() {
     type,
     source_url: elements.sourceUrlInput.value.trim(),
     source_platform: elements.sourcePlatformInput.value.trim(),
+    knowledge_category: elements.knowledgeCategoryInput.value.trim(),
+    knowledge_subcategory: elements.knowledgeSubcategoryInput.value.trim(),
     summary: elements.summaryInput.value.trim(),
     key_points: lines(elements.keyPointsInput.value),
     tags: lines(elements.tagsInput.value),
@@ -215,6 +265,8 @@ async function loadItems() {
   const params = new URLSearchParams();
   if (elements.searchInput.value.trim()) params.set("q", elements.searchInput.value.trim());
   if (elements.filterTypeInput.value) params.set("type", elements.filterTypeInput.value);
+  if (elements.filterCategoryInput.value) params.set("category", elements.filterCategoryInput.value);
+  if (elements.filterSubcategoryInput.value) params.set("subcategory", elements.filterSubcategoryInput.value);
   try {
     const result = await api(`/api/items?${params}`);
     state.items = result.items;
@@ -249,6 +301,10 @@ function renderLibrary() {
 }
 
 function itemCardHtml(item) {
+  const taxonomy = [item.knowledge_category, item.knowledge_subcategory]
+    .filter(Boolean)
+    .map((value) => `<span class="tag taxonomy-tag">${escapeHtml(value)}</span>`)
+    .join("");
   return `
     <div class="meta-row">
       <span class="pill type">${escapeHtml(typeLabel(item.type))}</span>
@@ -257,6 +313,7 @@ function itemCardHtml(item) {
     <h3>${escapeHtml(item.title)}</h3>
     <p>${escapeHtml(item.summary || "暂无摘要")}</p>
     <div class="tag-row">
+      ${taxonomy}
       ${(item.tags || []).slice(0, 5).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
     </div>
   `;
@@ -290,6 +347,8 @@ function itemDetailHtml(item) {
       <div class="meta-row">
         <span class="pill type">${escapeHtml(typeLabel(item.type))}</span>
         <span class="pill">${escapeHtml(item.source_platform || "manual")}</span>
+        ${item.knowledge_category ? `<span class="pill taxonomy-pill">${escapeHtml(item.knowledge_category)}</span>` : ""}
+        ${item.knowledge_subcategory ? `<span class="pill taxonomy-pill">${escapeHtml(item.knowledge_subcategory)}</span>` : ""}
       </div>
       <h3>${escapeHtml(item.title)}</h3>
       <p class="detail-summary">${escapeHtml(item.summary || "暂无摘要")}</p>
@@ -307,51 +366,12 @@ function itemDetailHtml(item) {
   `;
 }
 
-async function loadRetrieveItems() {
-  const params = new URLSearchParams();
-  if (elements.retrieveQueryInput.value.trim()) params.set("q", elements.retrieveQueryInput.value.trim());
-  if (elements.retrieveTypeInput.value) params.set("type", elements.retrieveTypeInput.value);
-  try {
-    const result = await api(`/api/items?${params}`);
-    state.retrieveItems = result.items;
-    const selectedExists = state.retrieveItems.some((item) => item.id === state.selectedRetrieveItemId);
-    if (!selectedExists) state.selectedRetrieveItemId = state.retrieveItems[0]?.id || "";
-    renderRetrieveItems();
-  } catch (error) {
-    elements.retrieveGrid.innerHTML = "";
-    elements.retrieveEmptyState.classList.remove("hidden");
-    elements.retrieveEmptyState.textContent = error.message;
-  }
-}
-
-function renderRetrieveItems() {
-  elements.retrieveCount.textContent = `${state.retrieveItems.length} 条结果`;
-  elements.retrieveGrid.replaceChildren();
-  elements.retrieveEmptyState.classList.toggle("hidden", state.retrieveItems.length > 0);
-
-  state.retrieveItems.forEach((item) => {
-    const card = document.createElement("button");
-    card.type = "button";
-    card.className = `item-card ${item.id === state.selectedRetrieveItemId ? "active" : ""}`;
-    card.innerHTML = itemCardHtml(item);
-    card.addEventListener("click", () => {
-      state.selectedRetrieveItemId = item.id;
-      renderRetrieveItems();
-    });
-    elements.retrieveGrid.append(card);
-  });
-
-  renderRetrieveDetail();
-}
-
-function renderRetrieveDetail() {
-  const item = state.retrieveItems.find((entry) => entry.id === state.selectedRetrieveItemId);
-  elements.retrieveDetailPanel.innerHTML = item
-    ? itemDetailHtml(item)
-    : '<div class="empty-detail">选择一张卡片查看详情。</div>';
-}
-
 function bindEvents() {
+  setOptions(elements.knowledgeCategoryOptions, taxonomyCategories());
+  setOptions(elements.knowledgeSubcategoryOptions, subcategoriesFor(""));
+  setSelectOptions(elements.filterCategoryInput, taxonomyCategories(), "全部知识类别");
+  updateFilterSubcategories();
+
   elements.passwordInput.value = state.password;
   elements.tokenInput.value = state.token;
   elements.settingsButton.addEventListener("click", () => {
@@ -372,16 +392,17 @@ function bindEvents() {
     setStatus("");
   });
   elements.itemForm.addEventListener("submit", saveItem);
+  elements.knowledgeCategoryInput.addEventListener("input", updateSubcategoryOptions);
   elements.searchInput.addEventListener("input", loadItems);
   elements.searchInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") loadItems();
   });
   elements.filterTypeInput.addEventListener("change", loadItems);
-  elements.retrieveQueryInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") loadRetrieveItems();
+  elements.filterCategoryInput.addEventListener("change", () => {
+    updateFilterSubcategories();
+    loadItems();
   });
-  elements.retrieveTypeInput.addEventListener("change", loadRetrieveItems);
-  elements.retrieveButton.addEventListener("click", loadRetrieveItems);
+  elements.filterSubcategoryInput.addEventListener("change", loadItems);
 }
 
 bindEvents();
