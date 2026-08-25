@@ -1,6 +1,8 @@
 const state = {
   items: [],
   selectedItemId: "",
+  retrieveItems: [],
+  selectedRetrieveItemId: "",
   password: localStorage.getItem("kb_password") || "",
   token: localStorage.getItem("kb_api_token") || ""
 };
@@ -41,14 +43,17 @@ const elements = {
   captureStatus: $("#captureStatus"),
   searchInput: $("#searchInput"),
   filterTypeInput: $("#filterTypeInput"),
-  librarySearchButton: $("#librarySearchButton"),
   itemGrid: $("#itemGrid"),
   emptyState: $("#emptyState"),
   detailPanel: $("#detailPanel"),
   libraryCount: $("#libraryCount"),
   retrieveQueryInput: $("#retrieveQueryInput"),
+  retrieveTypeInput: $("#retrieveTypeInput"),
   retrieveButton: $("#retrieveButton"),
-  retrieveOutput: $("#retrieveOutput")
+  retrieveGrid: $("#retrieveGrid"),
+  retrieveEmptyState: $("#retrieveEmptyState"),
+  retrieveDetailPanel: $("#retrieveDetailPanel"),
+  retrieveCount: $("#retrieveCount")
 };
 
 function headers(extra = {}) {
@@ -98,6 +103,7 @@ function showView(name) {
   });
   elements.tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.view === name));
   if (name === "library") loadItems();
+  if (name === "retrieve") loadRetrieveItems();
 }
 
 async function api(path, options = {}) {
@@ -231,17 +237,7 @@ function renderLibrary() {
     const card = document.createElement("button");
     card.type = "button";
     card.className = `item-card ${item.id === state.selectedItemId ? "active" : ""}`;
-    card.innerHTML = `
-      <div class="meta-row">
-        <span class="pill type">${escapeHtml(typeLabel(item.type))}</span>
-        <span class="pill">${escapeHtml(item.source_platform || "manual")}</span>
-      </div>
-      <h3>${escapeHtml(item.title)}</h3>
-      <p>${escapeHtml(item.summary || "暂无摘要")}</p>
-      <div class="tag-row">
-        ${(item.tags || []).slice(0, 5).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
-      </div>
-    `;
+    card.innerHTML = itemCardHtml(item);
     card.addEventListener("click", () => {
       state.selectedItemId = item.id;
       renderLibrary();
@@ -250,6 +246,20 @@ function renderLibrary() {
   });
 
   renderDetail();
+}
+
+function itemCardHtml(item) {
+  return `
+    <div class="meta-row">
+      <span class="pill type">${escapeHtml(typeLabel(item.type))}</span>
+      <span class="pill">${escapeHtml(item.source_platform || "manual")}</span>
+    </div>
+    <h3>${escapeHtml(item.title)}</h3>
+    <p>${escapeHtml(item.summary || "暂无摘要")}</p>
+    <div class="tag-row">
+      ${(item.tags || []).slice(0, 5).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
+    </div>
+  `;
 }
 
 function renderList(title, values) {
@@ -270,8 +280,12 @@ function renderDetail() {
     return;
   }
 
+  elements.detailPanel.innerHTML = itemDetailHtml(item);
+}
+
+function itemDetailHtml(item) {
   const excerpts = (item.excerpts || []).map((excerpt) => excerpt.text);
-  elements.detailPanel.innerHTML = `
+  return `
     <div class="detail-hero">
       <div class="meta-row">
         <span class="pill type">${escapeHtml(typeLabel(item.type))}</span>
@@ -293,22 +307,48 @@ function renderDetail() {
   `;
 }
 
-async function retrieveForCodex() {
-  const query = elements.retrieveQueryInput.value.trim();
-  if (!query) {
-    elements.retrieveOutput.textContent = "请输入任务描述。";
-    return;
-  }
-  elements.retrieveOutput.textContent = "检索中...";
+async function loadRetrieveItems() {
+  const params = new URLSearchParams();
+  if (elements.retrieveQueryInput.value.trim()) params.set("q", elements.retrieveQueryInput.value.trim());
+  if (elements.retrieveTypeInput.value) params.set("type", elements.retrieveTypeInput.value);
   try {
-    const result = await api("/api/retrieve", {
-      method: "POST",
-      body: JSON.stringify({ query, limit: 5 })
-    });
-    elements.retrieveOutput.textContent = JSON.stringify(result, null, 2);
+    const result = await api(`/api/items?${params}`);
+    state.retrieveItems = result.items;
+    const selectedExists = state.retrieveItems.some((item) => item.id === state.selectedRetrieveItemId);
+    if (!selectedExists) state.selectedRetrieveItemId = state.retrieveItems[0]?.id || "";
+    renderRetrieveItems();
   } catch (error) {
-    elements.retrieveOutput.textContent = error.message;
+    elements.retrieveGrid.innerHTML = "";
+    elements.retrieveEmptyState.classList.remove("hidden");
+    elements.retrieveEmptyState.textContent = error.message;
   }
+}
+
+function renderRetrieveItems() {
+  elements.retrieveCount.textContent = `${state.retrieveItems.length} 条结果`;
+  elements.retrieveGrid.replaceChildren();
+  elements.retrieveEmptyState.classList.toggle("hidden", state.retrieveItems.length > 0);
+
+  state.retrieveItems.forEach((item) => {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = `item-card ${item.id === state.selectedRetrieveItemId ? "active" : ""}`;
+    card.innerHTML = itemCardHtml(item);
+    card.addEventListener("click", () => {
+      state.selectedRetrieveItemId = item.id;
+      renderRetrieveItems();
+    });
+    elements.retrieveGrid.append(card);
+  });
+
+  renderRetrieveDetail();
+}
+
+function renderRetrieveDetail() {
+  const item = state.retrieveItems.find((entry) => entry.id === state.selectedRetrieveItemId);
+  elements.retrieveDetailPanel.innerHTML = item
+    ? itemDetailHtml(item)
+    : '<div class="empty-detail">选择一张卡片查看详情。</div>';
 }
 
 function bindEvents() {
@@ -337,8 +377,11 @@ function bindEvents() {
     if (event.key === "Enter") loadItems();
   });
   elements.filterTypeInput.addEventListener("change", loadItems);
-  elements.librarySearchButton.addEventListener("click", loadItems);
-  elements.retrieveButton.addEventListener("click", retrieveForCodex);
+  elements.retrieveQueryInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") loadRetrieveItems();
+  });
+  elements.retrieveTypeInput.addEventListener("change", loadRetrieveItems);
+  elements.retrieveButton.addEventListener("click", loadRetrieveItems);
 }
 
 bindEvents();

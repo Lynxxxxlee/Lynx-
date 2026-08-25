@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Lynx Knowledge Base</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2309a597'/%3E%3Ctext x='32' y='41' font-size='32' text-anchor='middle' fill='white' font-family='Arial'%3EL%3C/text%3E%3C/svg%3E" />
-    <link rel="stylesheet" href="/styles.css?v=20260825-library-search" />
+    <link rel="stylesheet" href="/styles.css?v=20260825-search-tab" />
   </head>
   <body>
     <header class="topbar">
@@ -27,7 +27,7 @@
       <nav class="tabs" aria-label="主导航">
         <button class="tab active" data-view="capture" type="button">快速收藏</button>
         <button class="tab" data-view="library" type="button">资料库</button>
-        <button class="tab" data-view="retrieve" type="button" aria-label="Codex 检索">检索</button>
+        <button class="tab" data-view="retrieve" type="button" aria-label="检索资料">检索</button>
       </nav>
 
       <form id="settingsPanel" class="settings-panel hidden">
@@ -166,7 +166,6 @@
                 <option value="project">项目</option>
                 <option value="interview">面试材料</option>
               </select>
-              <button id="librarySearchButton" class="primary-button compact-button" type="button">检索</button>
             </div>
             <div id="itemGrid" class="item-grid"></div>
             <div id="emptyState" class="empty-state hidden">还没有资料。先去快速收藏保存一条。</div>
@@ -179,21 +178,36 @@
       </section>
 
       <section id="retrieveView" class="view hidden">
-        <div class="panel">
-          <div class="panel-heading">
-            <h2>Codex 检索</h2>
-            <p>模拟之后 Codex 用任务描述检索你的资料卡片。</p>
+        <div class="search-layout">
+          <div class="panel library-sidebar">
+            <div class="panel-heading">
+              <h2>检索</h2>
+              <p id="retrieveCount">0 条结果</p>
+            </div>
+            <div class="filters search-filters">
+              <input id="retrieveQueryInput" placeholder="输入关键词，例如：Agent 评测" />
+              <select id="retrieveTypeInput" aria-label="帖子类型">
+                <option value="">全部类型</option>
+                <option value="wechat">公众号</option>
+                <option value="paper">论文</option>
+                <option value="post">帖子</option>
+                <option value="webpage">网页</option>
+                <option value="project">项目</option>
+                <option value="interview">面试材料</option>
+              </select>
+              <button id="retrieveButton" class="primary-button compact-button" type="button">检索</button>
+            </div>
+            <div id="retrieveGrid" class="item-grid"></div>
+            <div id="retrieveEmptyState" class="empty-state hidden">没有匹配资料。</div>
           </div>
-          <label>
-            当前任务
-            <textarea id="retrieveQueryInput" rows="3" placeholder="例如：帮我准备远程 Mac 安全面试"></textarea>
-          </label>
-          <button id="retrieveButton" class="primary-button" type="button">检索相关资料</button>
-          <pre id="retrieveOutput" class="json-output"></pre>
+
+          <aside id="retrieveDetailPanel" class="panel detail-panel">
+            <div class="empty-detail">选择一张卡片查看详情。</div>
+          </aside>
         </div>
       </section>
     </main>
 
-    <script src="/app.js?v=20260825-library-search"></script>
+    <script src="/app.js?v=20260825-search-tab"></script>
   </body>
 </html>

@@ -328,7 +328,7 @@ textarea:focus {
   gap: 12px;
 }
 
-.filters {
+.search-filters {
   grid-template-columns: minmax(0, 1fr) minmax(112px, 132px) 76px;
 }
 
@@ -361,7 +361,8 @@ textarea:focus {
   margin-bottom: 11px;
 }
 
-.library-layout {
+.library-layout,
+.search-layout {
   display: grid;
   grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
   gap: 18px;
@@ -693,12 +694,12 @@ textarea:focus {
     grid-template-columns: 1fr;
   }
 
-  .filters {
+  .search-filters {
     grid-template-columns: minmax(0, 1fr) minmax(104px, 124px) 68px;
     gap: 8px;
   }
 
-  .filters input {
+  .search-filters input {
     grid-column: 1 / -1;
   }
 
