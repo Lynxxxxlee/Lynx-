@@ -256,7 +256,7 @@ function renderList(title, values) {
   return `
     <div class="detail-section">
       <h4>${escapeHtml(title)}</h4>
-      <ul>${list.map((value) => `<li>${escapeHtml(value)}</li>`).join("")}</ul>
+      <ul class="detail-list">${list.map((value) => `<li>${escapeHtml(value)}</li>`).join("")}</ul>
     </div>
   `;
 }
@@ -270,20 +270,24 @@ function renderDetail() {
 
   const excerpts = (item.excerpts || []).map((excerpt) => excerpt.text);
   elements.detailPanel.innerHTML = `
-    <div class="meta-row">
-      <span class="pill type">${escapeHtml(typeLabel(item.type))}</span>
-      <span class="pill">${escapeHtml(item.source_platform || "manual")}</span>
+    <div class="detail-hero">
+      <div class="meta-row">
+        <span class="pill type">${escapeHtml(typeLabel(item.type))}</span>
+        <span class="pill">${escapeHtml(item.source_platform || "manual")}</span>
+      </div>
+      <h3>${escapeHtml(item.title)}</h3>
+      <p class="detail-summary">${escapeHtml(item.summary || "暂无摘要")}</p>
+      <div class="detail-actions">
+        ${item.source_url ? `<a class="source-link" href="${escapeHtml(item.source_url)}" target="_blank" rel="noreferrer">打开来源</a>` : ""}
+        <a class="secondary-button" href="/api/items/${encodeURIComponent(item.id)}/obsidian" target="_blank" rel="noreferrer">导出 Obsidian Markdown</a>
+      </div>
     </div>
-    <h3>${escapeHtml(item.title)}</h3>
-    <p>${escapeHtml(item.summary || "暂无摘要")}</p>
-    ${item.source_url ? `<a class="source-link" href="${escapeHtml(item.source_url)}" target="_blank" rel="noreferrer">打开来源</a>` : ""}
-    ${renderList("关键观点", item.key_points)}
-    ${renderList("适用场景", item.use_cases)}
+    <div class="detail-content-grid">
+      ${renderList("关键观点", item.key_points)}
+      ${renderList("适用场景", item.use_cases)}
+    </div>
     ${renderList("关键片段", excerpts)}
     ${item.personal_note ? `<div class="detail-section"><h4>我的备注</h4><p>${escapeHtml(item.personal_note)}</p></div>` : ""}
-    <div class="detail-section actions">
-      <a class="secondary-button" href="/api/items/${encodeURIComponent(item.id)}/obsidian" target="_blank" rel="noreferrer">导出 Obsidian Markdown</a>
-    </div>
   `;
 }
 
